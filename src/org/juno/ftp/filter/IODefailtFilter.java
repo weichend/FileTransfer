@@ -1,9 +1,8 @@
 package org.juno.ftp.filter;
 
-import java.io.BufferedOutputStream;
+
 import java.io.IOException;
-import java.io.OutputStream;
-import java.net.Socket;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.List;
@@ -45,6 +44,12 @@ public class IODefailtFilter implements ChainFilter {
 			}
 			break;
 		case PULL:
+			try {
+				sendFile(params,this.session);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			break;
 		}
 	}
@@ -77,6 +82,41 @@ public class IODefailtFilter implements ChainFilter {
 			e.printStackTrace();
 		}
 
+	}
+	
+	private void sendFile(List<Object> params, NioSession session) throws IOException {
+		if((boolean)params.get(0)) {
+			params.remove(0);
+			SocketChannel socketChannel = SocketChannel.open();
+	        socketChannel.configureBlocking(false);
+			String clientadress= ((InetSocketAddress)session.getClientAddress()).getAddress().getHostAddress();
+			InetSocketAddress inetSocketAddress = new InetSocketAddress(clientadress, 6666);			
+			new Thread() {
+				ByteBuffer buff=null;
+				public void run() {
+					try {
+						while(!socketChannel.connect(inetSocketAddress)) {
+							socketChannel.connect(inetSocketAddress);
+						}
+						buff=ByteBuffer.wrap(((String)params.get(0)).getBytes());						
+						buff.flip();
+						socketChannel.write(buff);						
+					} catch (IOException e) {
+						e.printStackTrace();
+					}finally {						
+							try {
+								if(buff!=null)
+								buff.clear();
+								if(socketChannel!=null)
+								socketChannel.close();								
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+					}
+				}
+			}.start();			
+		}		
+		
 	}
 
 	private void writeStringToAllSessions(String str, List<NioSession> list) throws IOException {

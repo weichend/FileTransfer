@@ -21,6 +21,8 @@ import org.juno.ftp.filter.FileOperationFilter;
 import org.juno.ftp.filter.IODefailtFilter;
 import org.juno.ftp.log.LogUtil;
 
+
+
 public class NioProcessor implements Runnable{
 	
 	private static ExecutorService executor;
@@ -179,6 +181,10 @@ public class NioProcessor implements Runnable{
 		else if(taskResource.getWorkType() == WORKTYPE.GROUP_CHAT) {
 			chainStack.add(new IODefailtFilter(session));
 		}
+		else {
+			chainStack.add(new IODefailtFilter(session));
+			chainStack.add(new FileOperationFilter(session));
+		}
 		return chainStack;
 	}
 
@@ -193,8 +199,10 @@ public class NioProcessor implements Runnable{
 			taskResource = new TaskResource(WORKTYPE.LIST, params);
 		}
 		//TODO
-		else if(msg.startsWith("$pull")) {
-			
+		else if(msg.startsWith("$pull ")) {
+			String filepath = PropertiesUtil.getProperty("ftp.server.user.folder")+"\\"+msg.substring(6,msg.length());
+			params.add(filepath);
+			taskResource = new TaskResource(WORKTYPE.PULL, params);			
 		}
 		//normal group chat
 		else {
